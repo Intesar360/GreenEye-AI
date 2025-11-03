@@ -28,15 +28,17 @@
       margin-bottom: 10px; 
       display: flex; 
       align-items: center;
+      justify-content: space-between;
     }
     .prediction img { 
       max-width: 120px; 
       border-radius: 6px; 
       margin-right: 15px; 
     }
+    .prediction-info { flex: 1; }
     button { 
-      margin-top: 15px; 
-      padding: 10px 20px; 
+      margin-left: 15px;
+      padding: 8px 15px; 
       border: none; 
       background: #e74c3c; 
       color: white; 
@@ -57,9 +59,9 @@
     <div class="predictions">
       {% if predictions %}
         {% for p in predictions %}
-          <div class="prediction">
+          <div class="prediction" id="pred-{{ p.id }}">
             <img src="{{ url_for('static', filename=p.image_path.split('static/')[-1]) }}" alt="Leaf Image">
-            <div>
+            <div class="prediction-info">
               <strong>User:</strong> {{ p.user.email }} <br>
               <strong>Leaf:</strong> {{ p.leaf }} <br>
               <strong>Health:</strong> {{ p.health }} <br>
@@ -67,6 +69,7 @@
               <strong>Confidence:</strong> {{ (p.confidence * 100)|round(2) }}% <br>
               <strong>Timestamp:</strong> {{ p.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
             </div>
+            <button onclick="deletePrediction('{{ p.id }}')">Delete</button>
           </div>
         {% endfor %}
       {% else %}
@@ -77,5 +80,22 @@
       <button type="submit">Logout</button>
     </form>
   </div>
+
+  <script>
+    async function deletePrediction(predId) {
+      predId = Number(predId); // Convert string to number
+      if (!confirm("Are you sure you want to delete this prediction?")) return;
+
+      const response = await fetch(`/delete_prediction/${predId}`, { method: "POST" });
+      const data = await response.json();
+
+      if (data.success) {
+        const predDiv = document.getElementById(`pred-${predId}`);
+        if (predDiv) predDiv.remove();
+      } else {
+        alert(data.error || "Failed to delete prediction");
+      }
+    }
+  </script>
 </body>
 </html>

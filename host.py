@@ -240,6 +240,27 @@ def predict():
         "confidence": round(max_prob2.item()*100, 2),
         "image_url": url_for("static", filename=image_path)
     })
+@app.route("/delete_prediction/<int:pred_id>", methods=["POST"])
+def delete_prediction(pred_id):
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    prediction = Prediction.query.get(pred_id)
+    if not prediction:
+        return jsonify({"error": "Prediction not found"}), 404
+
+    # Delete the image file from static/uploads
+    try:
+        file_path = os.path.join(app.static_folder, prediction.image_path)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except Exception as e:
+        print("Error deleting file:", e)
+
+    # Delete record from database
+    db.session.delete(prediction)
+    db.session.commit()
+    return jsonify({"success": True})
 
 
 # ===============================
