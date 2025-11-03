@@ -1,26 +1,40 @@
+import os
+import uuid
+import logging
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from PIL import Image
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms, models
-from PIL import Image
-import os
-import uuid
+import tempfile
+
+# ===============================
+# LOGGING
+# ===============================
+logging.basicConfig(filename="error.log", level=logging.ERROR)
 
 # ===============================
 # CONFIG
 # ===============================
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
-UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
-INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
 
-# Ensure directories exist
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(INSTANCE_DIR, exist_ok=True)
+# Ensure writable directories
+try:
+    UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except:
+    UPLOAD_DIR = tempfile.mkdtemp()
+
+try:
+    INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
+    os.makedirs(INSTANCE_DIR, exist_ok=True)
+except:
+    INSTANCE_DIR = tempfile.mkdtemp()
 
 LEAF_MODEL_PATH = os.path.join(MODEL_DIR, "leaf_detector.pth")
 DISEASE_MODEL_PATH = os.path.join(MODEL_DIR, "best_cpu_model.pth")
@@ -29,6 +43,8 @@ SPECIFIC_DISEASE_MODEL_PATH = os.path.join(MODEL_DIR, "disease_stage2_best_model
 DEVICE = torch.device("cpu")
 LEAF_CLASS_NAMES = ["Leaf", "Not Leaf"]
 DISEASE_CLASS_NAMES = ["Dry", "Healthy", "Unhealthy"]
+THRESHOLD_LEAF = 0.8
+THRESHOLD_UNHEALTHY = 0.6
 
 SPECIFIC_DISEASE_CLASSES = [
     "Anthracnose","Anthrax_Leaf","Apple___Apple_scab","Apple___Black_rot","Apple___Cedar_apple_rust",
@@ -43,14 +59,16 @@ SPECIFIC_DISEASE_CLASSES = [
     "Tomato___Target_Spot","Tomato___Tomato_mosaic_virus"
 ]
 
-THRESHOLD_LEAF = 0.8
-THRESHOLD_UNHEALTHY = 0.6
+transform = transforms.Compose([
+    transforms.Resize((224,224)),
+    transforms.ToTensor()
+])
 
 # ===============================
 # APP SETUP
 # ===============================
 app = Flask(__name__)
-app.secret_key = "super_secret_123"
+app.secret_key = os.environ.get("SECRET_KEY", "super_secret_123")
 DB_PATH = os.path.join(INSTANCE_DIR, "database.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -79,39 +97,43 @@ class Prediction(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
 # ===============================
-# MODEL LOADING
+# LAZY-LOAD MODELS
 # ===============================
-def load_leaf_model():
-    model = models.mobilenet_v3_small(weights=None)
-    model.classifier[3] = nn.Linear(model.classifier[3].in_features, len(LEAF_CLASS_NAMES))
-    model.load_state_dict(torch.load(LEAF_MODEL_PATH, map_location=DEVICE))
-    model.eval()
-    return model
+leaf_model = None
+disease_model = None
+specific_disease_model = None
 
-def load_disease_model():
-    model = models.efficientnet_b0(weights=None)
-    in_features = model.classifier[1].in_features
-    model.classifier = nn.Sequential(nn.Dropout(0.4), nn.Linear(in_features, len(DISEASE_CLASS_NAMES)))
-    model.load_state_dict(torch.load(DISEASE_MODEL_PATH, map_location=DEVICE))
-    model.eval()
-    return model
+def get_leaf_model():
+    global leaf_model
+    if leaf_model is None:
+        model = models.mobilenet_v3_small(weights=None)
+        model.classifier[3] = nn.Linear(model.classifier[3].in_features, len(LEAF_CLASS_NAMES))
+        model.load_state_dict(torch.load(LEAF_MODEL_PATH, map_location=DEVICE))
+        model.eval()
+        leaf_model = model
+    return leaf_model
 
-def load_specific_disease_model():
-    model = models.efficientnet_b0(weights=None)
-    in_features = model.classifier[1].in_features
-    model.classifier = nn.Sequential(nn.Dropout(0.4), nn.Linear(in_features, len(SPECIFIC_DISEASE_CLASSES)))
-    model.load_state_dict(torch.load(SPECIFIC_DISEASE_MODEL_PATH, map_location=DEVICE))
-    model.eval()
-    return model
+def get_disease_model():
+    global disease_model
+    if disease_model is None:
+        model = models.efficientnet_b0(weights=None)
+        in_features = model.classifier[1].in_features
+        model.classifier = nn.Sequential(nn.Dropout(0.4), nn.Linear(in_features, len(DISEASE_CLASS_NAMES)))
+        model.load_state_dict(torch.load(DISEASE_MODEL_PATH, map_location=DEVICE))
+        model.eval()
+        disease_model = model
+    return disease_model
 
-leaf_model = load_leaf_model()
-disease_model = load_disease_model()
-specific_disease_model = load_specific_disease_model()
-
-transform = transforms.Compose([
-    transforms.Resize((224,224)),
-    transforms.ToTensor()
-])
+def get_specific_disease_model():
+    global specific_disease_model
+    if specific_disease_model is None:
+        model = models.efficientnet_b0(weights=None)
+        in_features = model.classifier[1].in_features
+        model.classifier = nn.Sequential(nn.Dropout(0.4), nn.Linear(in_features, len(SPECIFIC_DISEASE_CLASSES)))
+        model.load_state_dict(torch.load(SPECIFIC_DISEASE_MODEL_PATH, map_location=DEVICE))
+        model.eval()
+        specific_disease_model = model
+    return specific_disease_model
 
 # ===============================
 # ROUTES
@@ -119,10 +141,7 @@ transform = transforms.Compose([
 @app.route("/")
 def home():
     if "user_id" in session:
-        if session.get("is_admin"):
-            return redirect(url_for("admin_dashboard"))
-        else:
-            return redirect(url_for("user_dashboard"))
+        return redirect(url_for("admin_dashboard") if session.get("is_admin") else url_for("user_dashboard"))
     return redirect(url_for("login"))
 
 @app.route("/register", methods=["GET", "POST"])
@@ -145,8 +164,7 @@ def login():
             session["user_id"] = user.id
             session["is_admin"] = user.is_admin
             return redirect(url_for("admin_dashboard" if user.is_admin else "user_dashboard"))
-        else:
-            return render_template("login.html", error="Invalid credentials")
+        return render_template("login.html", error="Invalid credentials")
     return render_template("login.html")
 
 @app.route("/logout")
@@ -175,21 +193,31 @@ def admin_dashboard():
 # ===============================
 @app.route("/predict", methods=["POST"])
 def predict():
+    import traceback
     if "user_id" not in session:
         return jsonify({"error": "Login required"}), 403
+
     try:
+        if "image" not in request.files:
+            return jsonify({"error": "No image uploaded"}), 400
+
         file = request.files["image"]
+        if file.filename == "":
+            return jsonify({"error": "Empty filename"}), 400
+
+        # Save file
         filename = str(uuid.uuid4()) + "_" + file.filename
         save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         file.save(save_path)
-
         image_path = "uploads/" + filename
 
+        # Load image
         img = Image.open(save_path).convert("RGB")
         img_tensor = transform(img).unsqueeze(0)
 
         # Leaf detection
+        leaf_model = get_leaf_model()
         with torch.no_grad():
             out_leaf = leaf_model(img_tensor)
             probs = F.softmax(out_leaf, dim=1)[0]
@@ -197,7 +225,7 @@ def predict():
         leaf_pred = LEAF_CLASS_NAMES[pred_idx.item()]
 
         if leaf_pred == "Not Leaf" and max_prob.item() > THRESHOLD_LEAF:
-            prediction = Prediction(
+            pred = Prediction(
                 image_path=image_path,
                 leaf="Not Leaf",
                 health="",
@@ -205,27 +233,30 @@ def predict():
                 confidence=max_prob.item(),
                 user_id=session["user_id"]
             )
-            db.session.add(prediction)
+            db.session.add(pred)
             db.session.commit()
             return jsonify({"leaf": "Not Leaf", "image_url": url_for("static", filename=image_path)})
 
         # Health detection
+        disease_model = get_disease_model()
         with torch.no_grad():
             out_health = disease_model(img_tensor)
             probs2 = F.softmax(out_health, dim=1)[0]
             max_prob2, pred_idx2 = torch.max(probs2, 0)
         health_pred = DISEASE_CLASS_NAMES[pred_idx2.item()]
 
-        # Specific disease
+        # Specific disease detection
         specific = ""
         if health_pred == "Unhealthy" and max_prob2.item() > THRESHOLD_UNHEALTHY:
+            specific_disease_model = get_specific_disease_model()
             with torch.no_grad():
                 out_spec = specific_disease_model(img_tensor)
                 probs3 = F.softmax(out_spec, dim=1)[0]
                 top_prob, top_idx = torch.max(probs3, 0)
                 specific = SPECIFIC_DISEASE_CLASSES[top_idx.item()]
 
-        prediction = Prediction(
+        # Save prediction
+        pred = Prediction(
             image_path=image_path,
             leaf="Leaf",
             health=health_pred,
@@ -233,7 +264,7 @@ def predict():
             confidence=max_prob2.item(),
             user_id=session["user_id"]
         )
-        db.session.add(prediction)
+        db.session.add(pred)
         db.session.commit()
 
         return jsonify({
@@ -243,9 +274,11 @@ def predict():
             "confidence": round(max_prob2.item()*100, 2),
             "image_url": url_for("static", filename=image_path)
         })
+
     except Exception as e:
-        print("Prediction Error:", e)
-        return jsonify({"error": "Server error"}), 500
+        logging.error("Prediction error", exc_info=True)
+        traceback.print_exc()
+        return jsonify({"error": "Server error", "details": str(e)}), 500
 
 # ===============================
 # DELETE PREDICTION
@@ -264,7 +297,7 @@ def delete_prediction(pred_id):
         if os.path.exists(file_path):
             os.remove(file_path)
     except Exception as e:
-        print("Error deleting file:", e)
+        logging.error("Error deleting file", exc_info=True)
 
     db.session.delete(prediction)
     db.session.commit()
@@ -292,4 +325,4 @@ def create_admins():
 # ===============================
 if __name__ == "__main__":
     create_admins()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
