@@ -13,9 +13,14 @@ import uuid
 # ===============================
 # CONFIG
 # ===============================
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))  # base directory for relative paths
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
+INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
+
+# Ensure directories exist
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(INSTANCE_DIR, exist_ok=True)
 
 LEAF_MODEL_PATH = os.path.join(MODEL_DIR, "leaf_detector.pth")
 DISEASE_MODEL_PATH = os.path.join(MODEL_DIR, "best_cpu_model.pth")
@@ -46,7 +51,9 @@ THRESHOLD_UNHEALTHY = 0.6
 # ===============================
 app = Flask(__name__)
 app.secret_key = "super_secret_123"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+DB_PATH = os.path.join(INSTANCE_DIR, "database.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_DIR
 
 db = SQLAlchemy(app)
@@ -177,14 +184,12 @@ def predict():
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         file.save(save_path)
 
-        image_path = "uploads/" + filename  # relative path for static
+        image_path = "uploads/" + filename
 
         img = Image.open(save_path).convert("RGB")
         img_tensor = transform(img).unsqueeze(0)
 
-        # ------------------
         # Leaf detection
-        # ------------------
         with torch.no_grad():
             out_leaf = leaf_model(img_tensor)
             probs = F.softmax(out_leaf, dim=1)[0]
@@ -204,18 +209,14 @@ def predict():
             db.session.commit()
             return jsonify({"leaf": "Not Leaf", "image_url": url_for("static", filename=image_path)})
 
-        # ------------------
         # Health detection
-        # ------------------
         with torch.no_grad():
             out_health = disease_model(img_tensor)
             probs2 = F.softmax(out_health, dim=1)[0]
             max_prob2, pred_idx2 = torch.max(probs2, 0)
         health_pred = DISEASE_CLASS_NAMES[pred_idx2.item()]
 
-        # ------------------
         # Specific disease
-        # ------------------
         specific = ""
         if health_pred == "Unhealthy" and max_prob2.item() > THRESHOLD_UNHEALTHY:
             with torch.no_grad():
@@ -258,7 +259,6 @@ def delete_prediction(pred_id):
     if not prediction:
         return jsonify({"error": "Prediction not found"}), 404
 
-    # Delete image file
     try:
         file_path = os.path.join(app.static_folder, prediction.image_path)
         if os.path.exists(file_path):
@@ -291,6 +291,5 @@ def create_admins():
 # RUN APP
 # ===============================
 if __name__ == "__main__":
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     create_admins()
     app.run(host="0.0.0.0", port=5000, debug=True)
