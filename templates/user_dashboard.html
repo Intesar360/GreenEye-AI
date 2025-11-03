@@ -5,17 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>User Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f9f9; padding: 20px; }
-    .container { max-width: 700px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.2); }
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #f4f9f9; 
+      padding: 20px; 
+    }
+    .container { 
+      max-width: 700px; 
+      margin: auto; 
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 10px; 
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2); 
+    }
     h2 { text-align: center; margin-bottom: 20px; }
     input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 6px; }
-    button { background: #3498db; color: #fff; border: none; cursor: pointer; }
+    button { 
+      background: #3498db; 
+      color: #fff; 
+      border: none; 
+      cursor: pointer; 
+      transition: background 0.3s ease;
+    }
     button:hover { background: #2980b9; }
-    .prediction { border: 1px solid #ccc; padding: 10px; border-radius: 6px; margin: 10px 0; display: flex; align-items: center; }
-    .prediction img { max-width: 120px; border-radius: 6px; margin-right: 15px; }
-    .logout { background: #e74c3c; }
+    .prediction { 
+      border: 1px solid #ccc; 
+      padding: 10px; 
+      border-radius: 6px; 
+      margin: 10px 0; 
+      display: flex; 
+      align-items: center; 
+      flex-wrap: wrap;
+      background: #f8f9fa;
+    }
+    .prediction img { max-width: 120px; border-radius: 6px; margin-right: 15px; margin-bottom: 10px; }
+    .prediction-info { flex: 1; min-width: 200px; }
+    .logout { 
+      background: #e74c3c; 
+      transition: background 0.3s ease;
+    }
     .logout:hover { background: #c0392b; }
-    #results { margin-top: 15px; }
+    #results { margin-top: 15px; font-weight: bold; }
+    @media (max-width: 500px) {
+      .prediction { flex-direction: column; align-items: flex-start; }
+      .prediction img { margin-right: 0; }
+    }
   </style>
 </head>
 <body>
@@ -36,7 +70,7 @@
       {% for pred in predictions %}
         <div class="prediction">
           <img src="{{ url_for('static', filename=pred.image_path) }}" alt="Leaf Image">
-          <div>
+          <div class="prediction-info">
             <p><strong>Leaf:</strong> {{ pred.leaf }}</p>
             <p><strong>Health:</strong> {{ pred.health }}</p>
             <p><strong>Disease:</strong> {{ pred.disease or 'N/A' }}</p>
@@ -67,28 +101,34 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   const resultsDiv = document.getElementById("results");
   resultsDiv.innerHTML = "<p>Processing...</p>";
 
-  const response = await fetch("/predict", { method: "POST", body: formData });
-  const data = await response.json();
+  try {
+    const response = await fetch("/predict", { method: "POST", body: formData });
+    const data = await response.json();
 
-  if(data.error) {
-    resultsDiv.innerHTML = `<p style="color:red">${data.error}</p>`;
-    return;
+    if(data.error) {
+      resultsDiv.innerHTML = `<p style="color:red">${data.error}</p>`;
+      return;
+    }
+
+    // Construct prediction card
+    let html = `<div class="prediction">
+                  <img src="${data.image_url}" alt="Leaf Image">
+                  <div class="prediction-info">
+                    <p><strong>Leaf:</strong> ${data.leaf}</p>
+                    <p><strong>Health:</strong> ${data.health}</p>`;
+    if(data.disease) html += `<p><strong>Disease:</strong> ${data.disease}</p>`;
+    html += `<p><strong>Confidence:</strong> ${data.confidence}%</p>
+             </div></div>`;
+
+    // Add new prediction on top
+    const allPredsDiv = document.getElementById("allPredictions");
+    allPredsDiv.insertAdjacentHTML('afterbegin', html);
+
+    resultsDiv.innerHTML = ""; // Clear processing message
+  } catch(err) {
+    console.error(err);
+    resultsDiv.innerHTML = `<p style="color:red">Server error. Try again.</p>`;
   }
-
-  let html = `<div class="prediction">
-                <img src="${data.image_url}" alt="Leaf Image">
-                <div>
-                  <p><strong>Leaf:</strong> ${data.leaf}</p>
-                  <p><strong>Health:</strong> ${data.health}</p>`;
-  if(data.disease) html += `<p><strong>Disease:</strong> ${data.disease}</p>`;
-  html += `<p><strong>Confidence:</strong> ${data.confidence}%</p>
-           </div></div>`;
-
-  // Append new prediction at the top of all predictions
-  const allPredsDiv = document.getElementById("allPredictions");
-  allPredsDiv.insertAdjacentHTML('afterbegin', html);
-
-  resultsDiv.innerHTML = ""; // clear "Processing..." message
 });
 </script>
 </body>
