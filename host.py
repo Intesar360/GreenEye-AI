@@ -8,13 +8,18 @@ import torch.nn.functional as F
 from torchvision import transforms, models
 from PIL import Image
 import os
+import uuid
 
 # ===============================
 # CONFIG
 # ===============================
-LEAF_MODEL_PATH = "models/leaf_detector.pth"
-DISEASE_MODEL_PATH = "models/best_cpu_model.pth"
-SPECIFIC_DISEASE_MODEL_PATH = "models/disease_stage2_best_model.pth"
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))  # base directory for relative paths
+MODEL_DIR = os.path.join(BASE_DIR, "models")
+UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
+
+LEAF_MODEL_PATH = os.path.join(MODEL_DIR, "leaf_detector.pth")
+DISEASE_MODEL_PATH = os.path.join(MODEL_DIR, "best_cpu_model.pth")
+SPECIFIC_DISEASE_MODEL_PATH = os.path.join(MODEL_DIR, "disease_stage2_best_model.pth")
 
 DEVICE = torch.device("cpu")
 LEAF_CLASS_NAMES = ["Leaf", "Not Leaf"]
@@ -42,7 +47,7 @@ THRESHOLD_UNHEALTHY = 0.6
 app = Flask(__name__)
 app.secret_key = "super_secret_123"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
-app.config["UPLOAD_FOLDER"] = "static/uploads"
+app.config["UPLOAD_FOLDER"] = UPLOAD_DIR
 
 db = SQLAlchemy(app)
 
@@ -158,88 +163,92 @@ def admin_dashboard():
     admin_user = User.query.get(session["user_id"])
     return render_template("admin_dashboard.html", predictions=all_preds, user=admin_user)
 
-import uuid
-
+# ===============================
+# PREDICTION ROUTE
+# ===============================
 @app.route("/predict", methods=["POST"])
 def predict():
     if "user_id" not in session:
         return jsonify({"error": "Login required"}), 403
+    try:
+        file = request.files["image"]
+        filename = str(uuid.uuid4()) + "_" + file.filename
+        save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        file.save(save_path)
 
-    file = request.files["image"]
-    # Create unique filename to avoid collisions
-    filename = str(uuid.uuid4()) + "_" + file.filename
-    save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    file.save(save_path)
+        image_path = "uploads/" + filename  # relative path for static
 
-    # Store relative path for static serving
-    image_path = "uploads/" + filename
+        img = Image.open(save_path).convert("RGB")
+        img_tensor = transform(img).unsqueeze(0)
 
-    img = Image.open(save_path).convert("RGB")
-    img_tensor = transform(img).unsqueeze(0)
+        # ------------------
+        # Leaf detection
+        # ------------------
+        with torch.no_grad():
+            out_leaf = leaf_model(img_tensor)
+            probs = F.softmax(out_leaf, dim=1)[0]
+            max_prob, pred_idx = torch.max(probs, 0)
+        leaf_pred = LEAF_CLASS_NAMES[pred_idx.item()]
 
-    # ------------------
-    # Leaf detection
-    # ------------------
-    with torch.no_grad():
-        out_leaf = leaf_model(img_tensor)
-        probs = F.softmax(out_leaf, dim=1)[0]
-        max_prob, pred_idx = torch.max(probs, 0)
+        if leaf_pred == "Not Leaf" and max_prob.item() > THRESHOLD_LEAF:
+            prediction = Prediction(
+                image_path=image_path,
+                leaf="Not Leaf",
+                health="",
+                disease="",
+                confidence=max_prob.item(),
+                user_id=session["user_id"]
+            )
+            db.session.add(prediction)
+            db.session.commit()
+            return jsonify({"leaf": "Not Leaf", "image_url": url_for("static", filename=image_path)})
 
-    leaf_pred = LEAF_CLASS_NAMES[pred_idx.item()]
-    if leaf_pred == "Not Leaf" and max_prob.item() > THRESHOLD_LEAF:
+        # ------------------
+        # Health detection
+        # ------------------
+        with torch.no_grad():
+            out_health = disease_model(img_tensor)
+            probs2 = F.softmax(out_health, dim=1)[0]
+            max_prob2, pred_idx2 = torch.max(probs2, 0)
+        health_pred = DISEASE_CLASS_NAMES[pred_idx2.item()]
+
+        # ------------------
+        # Specific disease
+        # ------------------
+        specific = ""
+        if health_pred == "Unhealthy" and max_prob2.item() > THRESHOLD_UNHEALTHY:
+            with torch.no_grad():
+                out_spec = specific_disease_model(img_tensor)
+                probs3 = F.softmax(out_spec, dim=1)[0]
+                top_prob, top_idx = torch.max(probs3, 0)
+                specific = SPECIFIC_DISEASE_CLASSES[top_idx.item()]
+
         prediction = Prediction(
             image_path=image_path,
-            leaf="Not Leaf",
-            health="",
-            disease="",
-            confidence=max_prob.item(),
+            leaf="Leaf",
+            health=health_pred,
+            disease=specific,
+            confidence=max_prob2.item(),
             user_id=session["user_id"]
         )
         db.session.add(prediction)
         db.session.commit()
+
         return jsonify({
-            "leaf": "Not Leaf",
+            "leaf": "Leaf",
+            "health": health_pred,
+            "disease": specific,
+            "confidence": round(max_prob2.item()*100, 2),
             "image_url": url_for("static", filename=image_path)
         })
+    except Exception as e:
+        print("Prediction Error:", e)
+        return jsonify({"error": "Server error"}), 500
 
-    # ------------------
-    # Health detection
-    # ------------------
-    with torch.no_grad():
-        out_health = disease_model(img_tensor)
-        probs2 = F.softmax(out_health, dim=1)[0]
-        max_prob2, pred_idx2 = torch.max(probs2, 0)
-    health_pred = DISEASE_CLASS_NAMES[pred_idx2.item()]
-
-    # ------------------
-    # Specific disease
-    # ------------------
-    specific = ""
-    if health_pred == "Unhealthy" and max_prob2.item() > THRESHOLD_UNHEALTHY:
-        with torch.no_grad():
-            out_spec = specific_disease_model(img_tensor)
-            probs3 = F.softmax(out_spec, dim=1)[0]
-            top_prob, top_idx = torch.max(probs3, 0)
-            specific = SPECIFIC_DISEASE_CLASSES[top_idx.item()]
-
-    prediction = Prediction(
-        image_path=image_path,
-        leaf="Leaf",
-        health=health_pred,
-        disease=specific,
-        confidence=max_prob2.item(),
-        user_id=session["user_id"]
-    )
-    db.session.add(prediction)
-    db.session.commit()
-
-    return jsonify({
-        "leaf": "Leaf",
-        "health": health_pred,
-        "disease": specific,
-        "confidence": round(max_prob2.item()*100, 2),
-        "image_url": url_for("static", filename=image_path)
-    })
+# ===============================
+# DELETE PREDICTION
+# ===============================
 @app.route("/delete_prediction/<int:pred_id>", methods=["POST"])
 def delete_prediction(pred_id):
     if "user_id" not in session or not session.get("is_admin"):
@@ -249,7 +258,7 @@ def delete_prediction(pred_id):
     if not prediction:
         return jsonify({"error": "Prediction not found"}), 404
 
-    # Delete the image file from static/uploads
+    # Delete image file
     try:
         file_path = os.path.join(app.static_folder, prediction.image_path)
         if os.path.exists(file_path):
@@ -257,11 +266,9 @@ def delete_prediction(pred_id):
     except Exception as e:
         print("Error deleting file:", e)
 
-    # Delete record from database
     db.session.delete(prediction)
     db.session.commit()
     return jsonify({"success": True})
-
 
 # ===============================
 # ADMIN CREATION
