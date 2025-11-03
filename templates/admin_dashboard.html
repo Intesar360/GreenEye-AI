@@ -19,6 +19,7 @@
       --gray: #adb5bd;
       --gray-light: #e9ecef;
       --white: #ffffff;
+      --dry-color: #a16207;
       --sidebar-width: 260px;
       --header-height: 70px;
       --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -212,6 +213,11 @@
       color: var(--danger);
     }
 
+    .stat-icon.dry {
+      background: rgba(161, 98, 7, 0.15);
+      color: var(--dry-color);
+    }
+
     .stat-info h3 {
       font-size: 1.8rem;
       font-weight: 700;
@@ -280,6 +286,10 @@
 
     .prediction.diseased {
       border-left-color: var(--danger);
+    }
+
+    .prediction.dry {
+      border-left-color: var(--dry-color);
     }
 
     .prediction-image {
@@ -365,6 +375,24 @@
       background: var(--secondary);
     }
 
+    .btn-success {
+      background: #38c172;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #2fa360;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background: #e0861b;
+    }
+
     .health-badge {
       padding: 0.4rem 0.8rem;
       border-radius: 50px;
@@ -382,6 +410,11 @@
     .health-badge.diseased {
       background: rgba(247, 37, 133, 0.15);
       color: var(--danger);
+    }
+
+    .health-badge.dry {
+      background: rgba(161, 98, 7, 0.15);
+      color: var(--dry-color);
     }
 
     /* Footer */
@@ -454,6 +487,11 @@
 
     .user-stat-numbers .diseased-count {
       color: var(--danger);
+      font-weight: bold;
+    }
+
+    .user-stat-numbers .dry-count {
+      color: var(--dry-color);
       font-weight: bold;
     }
 
@@ -605,6 +643,181 @@
     .sidebar-overlay.active {
       display: block;
     }
+
+    /* User Management Styles */
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .users-table th,
+    .users-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-light);
+    }
+
+    .users-table th {
+      background-color: var(--light);
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    .users-table tr:hover {
+      background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .user-status {
+      padding: 0.4rem 0.8rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .user-status.active {
+      background: rgba(56, 193, 114, 0.15);
+      color: #38c172;
+    }
+
+    .user-status.inactive {
+      background: rgba(108, 117, 125, 0.15);
+      color: #6c757d;
+    }
+
+    .user-status.suspended {
+      background: rgba(247, 37, 133, 0.15);
+      color: var(--danger);
+    }
+
+    .user-avatar-small {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--success));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 2rem;
+      gap: 0.5rem;
+    }
+
+    .pagination button {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--gray-light);
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .pagination button:hover {
+      background: var(--gray-light);
+    }
+
+    .pagination button.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .user-detail-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-detail-modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--gray-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--gray);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .user-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .user-detail-item {
+      margin-bottom: 1rem;
+    }
+
+    .user-detail-item label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--dark);
+    }
+
+    .user-detail-item .value {
+      padding: 0.5rem;
+      background: var(--light);
+      border-radius: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .user-detail-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .users-table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
   </style>
 </head>
 <body>
@@ -624,19 +837,18 @@
       </div>
       <div class="menu-item" data-page="users">
         <i class="fas fa-users"></i>
-        <span>Users</span>
+        <span>User Management</span>
       </div>
       <div class="menu-item" data-page="analytics">
         <i class="fas fa-chart-bar"></i>
         <span>Analytics</span>
       </div>
-   
-     <div class="menu-item">
-  <a href="{{ url_for('logout') }}" style="display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; width: 100%;">
-    <i class="fas fa-sign-out-alt"></i>
-    <span>Logout</span>
-  </a>
-</div>
+      <div class="menu-item">
+        <a href="{{ url_for('logout') }}" style="display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; width: 100%;">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -650,7 +862,7 @@
         </button>
         <div class="header-title">
           <h1>Admin Dashboard</h1>
-          <p>Monitor and manage plant disease predictions</p>
+          <p>Monitor and manage plant health predictions</p>
         </div>
       </div>
       <div class="user-info">
@@ -704,6 +916,15 @@
             <p>Diseased Plants</p>
           </div>
         </div>
+        <div class="stat-card fade-in" style="animation-delay: 0.4s;">
+          <div class="stat-icon dry">
+            <i class="fas fa-tint-slash"></i>
+          </div>
+          <div class="stat-info">
+            <h3 id="dry-plants">0</h3>
+            <p>Dry Plants</p>
+          </div>
+        </div>
       </div>
 
       <!-- Predictions Card -->
@@ -719,6 +940,7 @@
               <option value="all">All Status</option>
               <option value="healthy">Healthy</option>
               <option value="diseased">Diseased</option>
+              <option value="dry">Dry</option>
             </select>
             <select class="filter-select" id="userFilter">
               <option value="all">All Users</option>
@@ -730,14 +952,14 @@
           <div class="predictions" id="predictions-container">
             {% if predictions %}
               {% for p in predictions %}
-                <div class="prediction {{ 'healthy' if p.health == 'Healthy' else 'diseased' }} fade-in" id="pred-{{ p.id }}" data-user="{{ p.user.email }}" data-status="{{ 'healthy' if p.health == 'Healthy' else 'diseased' }}">
+                <div class="prediction {{ p.health.lower() }} fade-in" id="pred-{{ p.id }}" data-user="{{ p.user.email }}" data-status="{{ p.health.lower() }}">
                   <div class="prediction-image">
                     <img src="{{ url_for('static', filename=p.image_path) }}" alt="Leaf Image">
                   </div>
                   <div class="prediction-info">
                     <h4>
                       {{ p.leaf }}
-                      <span class="health-badge {{ 'healthy' if p.health == 'Healthy' else 'diseased' }}">
+                      <span class="health-badge {{ p.health.lower() }}">
                         {{ p.health }}
                       </span>
                     </h4>
@@ -782,25 +1004,70 @@
       </div>
     </div>
 
+    <!-- User Management Page -->
+    <div class="page-content" id="users-page" style="display: none;">
+      <div class="content-card">
+        <div class="card-header">
+          <h3>User Management</h3>
+          <div class="search-filter">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="userSearchInput" placeholder="Search users...">
+            </div>
+            <select class="filter-select" id="userStatusFilter">
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>User ID</th>
+                <th>User</th>
+                <th>Email</th>
+                <th>Registration Date</th>
+                <th>Predictions</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <!-- Users will be populated by JavaScript -->
+            </tbody>
+          </table>
+          <div class="pagination" id="users-pagination">
+            <!-- Pagination will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Analytics Page -->
     <div class="page-content" id="analytics-page" style="display: none;">
       <div class="analytics-grid">
         <div class="analytics-card">
           <h3><i class="fas fa-chart-pie"></i> Health Distribution</h3>
           <div id="health-chart">
-            <!-- Chart will be populated by JavaScript -->
             <div style="text-align: center; padding: 2rem;">
-              <div style="display: inline-block; width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(#38c172 0% 70%, #f72585 70% 100%); position: relative;">
+              <div id="pie-chart" style="display: inline-block; width: 200px; height: 200px; border-radius: 50%; position: relative;">
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; background: white; border-radius: 50%;"></div>
               </div>
-              <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem;">
+              <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <div style="width: 15px; height: 15px; background: #38c172; border-radius: 3px;"></div>
-                  <span>Healthy: <span id="healthy-percent">70%</span></span>
+                  <span>Healthy: <span id="healthy-percent">0%</span></span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <div style="width: 15px; height: 15px; background: #f72585; border-radius: 3px;"></div>
-                  <span>Diseased: <span id="diseased-percent">30%</span></span>
+                  <span>Diseased: <span id="diseased-percent">0%</span></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <div style="width: 15px; height: 15px; background: #a16207; border-radius: 3px;"></div>
+                  <span>Dry: <span id="dry-percent">0%</span></span>
                 </div>
               </div>
             </div>
@@ -817,7 +1084,6 @@
         <div class="analytics-card">
           <h3><i class="fas fa-leaf"></i> Top Diseases</h3>
           <div id="disease-stats">
-            <!-- Disease stats will be populated by JavaScript -->
             <div style="margin-top: 1rem;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem;">
                 <span>Powdery Mildew</span>
@@ -854,7 +1120,21 @@
     </div>
   </div>
 
+  <!-- User Detail Modal -->
+  <div class="user-detail-modal" id="userDetailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>User Details</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="userDetailContent">
+        <!-- User details will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
   <script>
+   
     // Mobile sidebar toggle
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
@@ -889,6 +1169,11 @@
           });
           document.getElementById(`${page}-page`).style.display = 'block';
           
+          // If user management page is selected, load users
+          if (page === 'users') {
+            loadUsers();
+          }
+          
           // Close sidebar on mobile after selection
           if (window.innerWidth <= 992) {
             sidebar.classList.remove('active');
@@ -899,100 +1184,208 @@
     });
     
     // Calculate and update statistics
-    function updateStatistics() {
-      const predictions = document.querySelectorAll('.prediction');
-      const totalPredictions = predictions.length;
-      
-      // Calculate healthy and diseased counts
-      let healthyCount = 0;
-      let diseasedCount = 0;
-      const users = new Set();
-      const userStats = {};
-      
-      predictions.forEach(prediction => {
-        const userEmail = prediction.getAttribute('data-user');
-        const status = prediction.getAttribute('data-status');
+        // Function to fetch real statistics from backend
+    async function fetchStatistics() {
+        try {
+            const response = await fetch('/admin/statistics');
+            const data = await response.json();
+            
+            if (data.success) {
+                return data.statistics;
+            } else {
+                console.error('Failed to fetch statistics:', data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching statistics:', error);
+            return null;
+        }
+    }
+
+    // Calculate and update statistics with real data
+    async function updateStatistics() {
+        // Try to get real statistics from backend first
+        const realStats = await fetchStatistics();
         
-        // Count by status
-        if (status === 'healthy') {
-          healthyCount++;
+        if (realStats) {
+            // Use real statistics from backend
+            document.getElementById('total-users').textContent = realStats.total_users;
+            document.getElementById('total-predictions').textContent = realStats.total_predictions;
+            document.getElementById('healthy-plants').textContent = realStats.healthy_plants;
+            document.getElementById('diseased-plants').textContent = realStats.diseased_plants;
+            document.getElementById('dry-plants').textContent = realStats.dry_plants;
+            
+            // Update health distribution chart with real data
+            if (realStats.total_predictions > 0) {
+                const healthyPercent = Math.round((realStats.healthy_plants / realStats.total_predictions) * 100);
+                const diseasedPercent = Math.round((realStats.diseased_plants / realStats.total_predictions) * 100);
+                const dryPercent = Math.round((realStats.dry_plants / realStats.total_predictions) * 100);
+                
+                document.getElementById('healthy-percent').textContent = `${healthyPercent}%`;
+                document.getElementById('diseased-percent').textContent = `${diseasedPercent}%`;
+                document.getElementById('dry-percent').textContent = `${dryPercent}%`;
+                
+                // Update pie chart
+                const pieChart = document.getElementById('pie-chart');
+                if (pieChart) {
+                    let conicGradient = '';
+                    let currentPercent = 0;
+                    
+                    if (healthyPercent > 0) {
+                        conicGradient += `#38c172 0% ${healthyPercent}%`;
+                        currentPercent = healthyPercent;
+                    }
+                    
+                    if (diseasedPercent > 0) {
+                        if (conicGradient) conicGradient += ', ';
+                        conicGradient += `#f72585 ${currentPercent}% ${currentPercent + diseasedPercent}%`;
+                        currentPercent += diseasedPercent;
+                    }
+                    
+                    if (dryPercent > 0) {
+                        if (conicGradient) conicGradient += ', ';
+                        conicGradient += `#a16207 ${currentPercent}% 100%`;
+                    }
+                    
+                    pieChart.style.background = `conic-gradient(${conicGradient})`;
+                }
+            }
         } else {
-          diseasedCount++;
+            // Fallback to counting from HTML elements
+            const predictions = document.querySelectorAll('.prediction');
+            const totalPredictions = predictions.length;
+            
+            // Calculate healthy, diseased, and dry counts from displayed predictions
+            let healthyCount = 0;
+            let diseasedCount = 0;
+            let dryCount = 0;
+            const users = new Set();
+            const userStats = {};
+            
+            predictions.forEach(prediction => {
+                const userEmail = prediction.getAttribute('data-user');
+                const status = prediction.getAttribute('data-status');
+                
+                // Count by status
+                if (status === 'healthy') {
+                    healthyCount++;
+                } else if (status === 'diseased') {
+                    diseasedCount++;
+                } else if (status === 'dry') {
+                    dryCount++;
+                }
+                
+                // Track unique users
+                users.add(userEmail);
+            });
+            
+            // Update stats cards
+            document.getElementById('total-users').textContent = users.size;
+            document.getElementById('total-predictions').textContent = totalPredictions;
+            document.getElementById('healthy-plants').textContent = healthyCount;
+            document.getElementById('diseased-plants').textContent = diseasedCount;
+            document.getElementById('dry-plants').textContent = dryCount;
+            
+            // Update health distribution chart
+            if (totalPredictions > 0) {
+                const healthyPercent = Math.round((healthyCount / totalPredictions) * 100);
+                const diseasedPercent = Math.round((diseasedCount / totalPredictions) * 100);
+                const dryPercent = Math.round((dryCount / totalPredictions) * 100);
+                
+                document.getElementById('healthy-percent').textContent = `${healthyPercent}%`;
+                document.getElementById('diseased-percent').textContent = `${diseasedPercent}%`;
+                document.getElementById('dry-percent').textContent = `${dryPercent}%`;
+                
+                // Update pie chart
+                const pieChart = document.getElementById('pie-chart');
+                if (pieChart) {
+                    let conicGradient = '';
+                    let currentPercent = 0;
+                    
+                    if (healthyPercent > 0) {
+                        conicGradient += `#38c172 0% ${healthyPercent}%`;
+                        currentPercent = healthyPercent;
+                    }
+                    
+                    if (diseasedPercent > 0) {
+                        if (conicGradient) conicGradient += ', ';
+                        conicGradient += `#f72585 ${currentPercent}% ${currentPercent + diseasedPercent}%`;
+                        currentPercent += diseasedPercent;
+                    }
+                    
+                    if (dryPercent > 0) {
+                        if (conicGradient) conicGradient += ', ';
+                        conicGradient += `#a16207 ${currentPercent}% 100%`;
+                    }
+                    
+                    pieChart.style.background = `conic-gradient(${conicGradient})`;
+                }
+            }
         }
         
-        // Track unique users
-        users.add(userEmail);
+        // Update user stats in analytics (this part can stay the same)
+        const predictions = document.querySelectorAll('.prediction');
+        const userStats = {};
         
-        // Build user stats
-        if (!userStats[userEmail]) {
-          userStats[userEmail] = { healthy: 0, diseased: 0 };
-        }
+        predictions.forEach(prediction => {
+            const userEmail = prediction.getAttribute('data-user');
+            const status = prediction.getAttribute('data-status');
+            
+            if (!userStats[userEmail]) {
+                userStats[userEmail] = { healthy: 0, diseased: 0, dry: 0 };
+            }
+            
+            if (status === 'healthy') {
+                userStats[userEmail].healthy++;
+            } else if (status === 'diseased') {
+                userStats[userEmail].diseased++;
+            } else if (status === 'dry') {
+                userStats[userEmail].dry++;
+            }
+        });
         
-        if (status === 'healthy') {
-          userStats[userEmail].healthy++;
-        } else {
-          userStats[userEmail].diseased++;
-        }
-      });
-      
-      // Update stats cards
-      document.getElementById('total-users').textContent = users.size;
-      document.getElementById('total-predictions').textContent = totalPredictions;
-      document.getElementById('healthy-plants').textContent = healthyCount;
-      document.getElementById('diseased-plants').textContent = diseasedCount;
-      
-      // Update health distribution chart
-      if (totalPredictions > 0) {
-        const healthyPercent = Math.round((healthyCount / totalPredictions) * 100);
-        const diseasedPercent = Math.round((diseasedCount / totalPredictions) * 100);
+        const userStatsContainer = document.getElementById('user-stats');
+        userStatsContainer.innerHTML = '';
         
-        document.getElementById('healthy-percent').textContent = `${healthyPercent}%`;
-        document.getElementById('diseased-percent').textContent = `${diseasedPercent}%`;
+        Object.keys(userStats).forEach(userEmail => {
+            const stats = userStats[userEmail];
+            const totalUserPredictions = stats.healthy + stats.diseased + stats.dry;
+            
+            const userStatItem = document.createElement('div');
+            userStatItem.className = 'user-stat-item';
+            userStatItem.innerHTML = `
+                <div class="user-stat-info">
+                    <h4>${userEmail}</h4>
+                    <p>${totalUserPredictions} prediction${totalUserPredictions !== 1 ? 's' : ''}</p>
+                </div>
+                <div class="user-stat-numbers">
+                    <div class="healthy-count">${stats.healthy} healthy</div>
+                    <div class="diseased-count">${stats.diseased} diseased</div>
+                    <div class="dry-count">${stats.dry} dry</div>
+                </div>
+            `;
+            
+            userStatsContainer.appendChild(userStatItem);
+        });
         
-        // Update pie chart
-        const chart = document.querySelector('#health-chart > div > div');
-        if (chart) {
-          chart.style.background = `conic-gradient(#38c172 0% ${healthyPercent}%, #f72585 ${healthyPercent}% 100%)`;
-        }
-      }
-      
-      // Update user stats in analytics
-      const userStatsContainer = document.getElementById('user-stats');
-      userStatsContainer.innerHTML = '';
-      
-      Object.keys(userStats).forEach(userEmail => {
-        const stats = userStats[userEmail];
-        const totalUserPredictions = stats.healthy + stats.diseased;
+        // Populate user filter (this part can stay the same)
+        const users = new Set();
+        predictions.forEach(prediction => {
+            users.add(prediction.getAttribute('data-user'));
+        });
         
-        const userStatItem = document.createElement('div');
-        userStatItem.className = 'user-stat-item';
-        userStatItem.innerHTML = `
-          <div class="user-stat-info">
-            <h4>${userEmail}</h4>
-            <p>${totalUserPredictions} prediction${totalUserPredictions !== 1 ? 's' : ''}</p>
-          </div>
-          <div class="user-stat-numbers">
-            <div class="healthy-count">${stats.healthy} healthy</div>
-            <div class="diseased-count">${stats.diseased} diseased</div>
-          </div>
-        `;
+        const userFilter = document.getElementById('userFilter');
+        userFilter.innerHTML = '<option value="all">All Users</option>';
         
-        userStatsContainer.appendChild(userStatItem);
-      });
-      
-      // Populate user filter
-      const userFilter = document.getElementById('userFilter');
-      userFilter.innerHTML = '<option value="all">All Users</option>';
-      
-      users.forEach(user => {
-        const option = document.createElement('option');
-        option.value = user;
-        option.textContent = user;
-        userFilter.appendChild(option);
-      });
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user;
+            option.textContent = user;
+            userFilter.appendChild(option);
+        });
     }
     
-    // Search and filter functionality
+    // Search and filter functionality for predictions
     function setupSearchAndFilter() {
       const searchInput = document.getElementById('searchInput');
       const statusFilter = document.getElementById('statusFilter');
@@ -1061,10 +1454,363 @@
       }
     }
     
+        // User Management Functions
+    let currentPage = 1;
+    const usersPerPage = 10;
+
+    // Function to fetch real users from backend
+    async function fetchUsers() {
+        try {
+            const response = await fetch('/admin/users');
+            const data = await response.json();
+            
+            if (data.success) {
+                return data.users;
+            } else {
+                console.error('Failed to fetch users:', data.error);
+                return [];
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error);
+            return [];
+        }
+    }
+
+    // Load real users from database
+    async function loadUsers(page = 1, searchTerm = '', statusFilter = 'all') {
+        currentPage = page;
+        
+        // Show loading state
+        const tableBody = document.getElementById('users-table-body');
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 2rem;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Loading users...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+        
+        try {
+            // Fetch real users from your backend
+            const allUsers = await fetchUsers();
+            
+            // Filter users based on search term and status
+            let filteredUsers = allUsers.filter(user => {
+                const matchesSearch = searchTerm === '' || 
+                    user.email.toLowerCase().includes(searchTerm) ||
+                    (user.first_name && user.first_name.toLowerCase().includes(searchTerm)) ||
+                    (user.last_name && user.last_name.toLowerCase().includes(searchTerm)) ||
+                    user.id.toString().includes(searchTerm);
+                
+                const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+                
+                return matchesSearch && matchesStatus;
+            });
+            
+            // Calculate pagination
+            const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+            const startIndex = (page - 1) * usersPerPage;
+            const paginatedUsers = filteredUsers.slice(startIndex, startIndex + usersPerPage);
+            
+            // Update table with real user data
+            tableBody.innerHTML = '';
+            
+            if (paginatedUsers.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem;">
+                            <div class="no-data">
+                                <i class="fas fa-users"></i>
+                                <h3>No users found</h3>
+                                <p>There are no users matching your criteria.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                paginatedUsers.forEach(user => {
+                    const firstName = user.first_name || 'N/A';
+                    const lastName = user.last_name || 'N/A';
+                    const registrationDate = user.created_at ? 
+                        new Date(user.created_at).toLocaleDateString() : 'N/A';
+                    const lastLogin = user.last_login ? 
+                        new Date(user.last_login).toLocaleDateString() : 'Never';
+                    const status = user.status || 'active';
+                    const predictionCount = user.prediction_count || 0;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.id}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="user-avatar-small">
+                                    ${firstName[0]}${lastName[0]}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600;">${firstName} ${lastName}</div>
+                                    <div style="font-size: 0.8rem; color: var(--gray);">ID: ${user.id}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${user.email}</td>
+                        <td>${registrationDate}</td>
+                        <td>${predictionCount}</td>
+                        <td><span class="user-status ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+                        <td>
+                            <div class="user-actions">
+                                <button class="btn btn-outline" onclick="viewUserDetails(${user.id})">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button class="btn btn-warning" onclick="editUser(${user.id})">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-danger" onclick="deleteUser(${user.id})">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            // Update pagination
+            updatePagination(totalPages, page);
+            
+        } catch (error) {
+            console.error('Error loading users:', error);
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem;">
+                        <div class="no-data">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Error loading users</h3>
+                            <p>Failed to fetch user data from server.</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    function updatePagination(totalPages, currentPage) {
+      const paginationContainer = document.getElementById('users-pagination');
+      paginationContainer.innerHTML = '';
+      
+      if (totalPages <= 1) return;
+      
+      // Previous button
+      const prevButton = document.createElement('button');
+      prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+      prevButton.disabled = currentPage === 1;
+      prevButton.addEventListener('click', () => {
+        if (currentPage > 1) {
+          loadUsers(currentPage - 1, 
+            document.getElementById('userSearchInput').value,
+            document.getElementById('userStatusFilter').value
+          );
+        }
+      });
+      paginationContainer.appendChild(prevButton);
+      
+      // Page buttons
+      for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.classList.toggle('active', i === currentPage);
+        pageButton.addEventListener('click', () => {
+          loadUsers(i, 
+            document.getElementById('userSearchInput').value,
+            document.getElementById('userStatusFilter').value
+          );
+        });
+        paginationContainer.appendChild(pageButton);
+      }
+      
+      // Next button
+      const nextButton = document.createElement('button');
+      nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+      nextButton.disabled = currentPage === totalPages;
+      nextButton.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          loadUsers(currentPage + 1, 
+            document.getElementById('userSearchInput').value,
+            document.getElementById('userStatusFilter').value
+          );
+        }
+      });
+      paginationContainer.appendChild(nextButton);
+    }
+    
+    // View user details with real data
+    async function viewUserDetails(userId) {
+        try {
+            const response = await fetch(`/admin/users/${userId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const user = data.user;
+                const modal = document.getElementById('userDetailModal');
+                const content = document.getElementById('userDetailContent');
+                
+                const firstName = user.first_name || 'N/A';
+                const lastName = user.last_name || 'N/A';
+                const registrationDate = user.created_at ? 
+                    new Date(user.created_at).toLocaleDateString() : 'N/A';
+                const lastLogin = user.last_login ? 
+                    new Date(user.last_login).toLocaleDateString() : 'Never';
+                const status = user.status || 'active';
+                const predictionCount = user.prediction_count || 0;
+                
+                content.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 2rem;">
+                        <div class="user-avatar" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            ${firstName[0]}${lastName[0]}
+                        </div>
+                        <div>
+                            <h3 style="margin: 0;">${firstName} ${lastName}</h3>
+                            <p style="margin: 0; color: var(--gray);">User ID: ${user.id}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="user-detail-grid">
+                        <div class="user-detail-item">
+                            <label>Email Address</label>
+                            <div class="value">${user.email}</div>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>Registration Date</label>
+                            <div class="value">${registrationDate}</div>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>Last Login</label>
+                            <div class="value">${lastLogin}</div>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>Total Predictions</label>
+                            <div class="value">${predictionCount}</div>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>Account Status</label>
+                            <div class="value">
+                                <span class="user-status ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                            </div>
+                        </div>
+                        <div class="user-detail-item">
+                            <label>User Role</label>
+                            <div class="value">${user.role || 'user'}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                        <button class="btn btn-primary" onclick="editUser(${user.id})">
+                            <i class="fas fa-edit"></i> Edit User
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteUser(${user.id})">
+                            <i class="fas fa-trash"></i> Delete User
+                        </button>
+                    </div>
+                `;
+                
+                modal.classList.add('active');
+            } else {
+                alert('Failed to load user details: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching user details:', error);
+            alert('Error loading user details');
+        }
+    }
+    
+    // Delete user function
+    async function deleteUser(userId) {
+        if (!confirm(`Are you sure you want to delete user with ID: ${userId}?`)) return;
+        
+        try {
+            const response = await fetch(`/admin/users/${userId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('User deleted successfully!');
+                // Reload users after deletion
+                loadUsers(currentPage, 
+                    document.getElementById('userSearchInput').value,
+                    document.getElementById('userStatusFilter').value
+                );
+            } else {
+                alert('Failed to delete user: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Error deleting user');
+        }
+    }
+    
+    // Update user function
+    async function editUser(userId) {
+        // In a real implementation, this would open a form with user data
+        // For now, let's show a simple prompt
+        const newStatus = prompt('Enter new status (active/inactive/suspended):', 'active');
+        
+        if (newStatus && ['active', 'inactive', 'suspended'].includes(newStatus.toLowerCase())) {
+            try {
+                const response = await fetch(`/admin/users/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: newStatus.toLowerCase()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('User updated successfully!');
+                    // Reload users after update
+                    loadUsers(currentPage, 
+                        document.getElementById('userSearchInput').value,
+                        document.getElementById('userStatusFilter').value
+                    );
+                } else {
+                    alert('Failed to update user: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error updating user:', error);
+                alert('Error updating user');
+            }
+        }
+    }
+    
+    // Modal close functionality
+    document.getElementById('modalClose').addEventListener('click', () => {
+      document.getElementById('userDetailModal').classList.remove('active');
+    });
+    
+    // User search and filter functionality
+    function setupUserSearchAndFilter() {
+      const searchInput = document.getElementById('userSearchInput');
+      const statusFilter = document.getElementById('userStatusFilter');
+      
+      function filterUsers() {
+        loadUsers(1, searchInput.value.toLowerCase(), statusFilter.value);
+      }
+      
+      searchInput.addEventListener('input', filterUsers);
+      statusFilter.addEventListener('change', filterUsers);
+    }
+    
     // Initialize everything when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
       updateStatistics();
       setupSearchAndFilter();
+      setupUserSearchAndFilter();
       
       // Add animation to elements when they come into view
       const fadeElements = document.querySelectorAll('.fade-in');

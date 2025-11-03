@@ -304,6 +304,272 @@ def delete_prediction(pred_id):
     return jsonify({"success": True})
 
 # ===============================
+# ADMIN USER MANAGEMENT ROUTES
+# ===============================
+@app.route('/admin/users')
+def admin_users():
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    users = User.query.all()
+    user_list = []
+    
+    for user in users:
+        user_data = {
+            'id': user.id,
+            'email': user.email,
+            'first_name': getattr(user, 'first_name', None),
+            'last_name': getattr(user, 'last_name', None),
+            'created_at': user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else None,
+            'last_login': user.last_login.isoformat() if hasattr(user, 'last_login') and user.last_login else None,
+            'status': getattr(user, 'status', 'active'),
+            'role': 'admin' if user.is_admin else 'user',
+            'prediction_count': Prediction.query.filter_by(user_id=user.id).count()
+        }
+        user_list.append(user_data)
+    
+    return jsonify({'success': True, 'users': user_list})
+
+@app.route('/admin/users/<int:user_id>')
+def admin_user_detail(user_id):
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    user_data = {
+        'id': user.id,
+        'email': user.email,
+        'first_name': getattr(user, 'first_name', None),
+        'last_name': getattr(user, 'last_name', None),
+        'created_at': user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else None,
+        'last_login': user.last_login.isoformat() if hasattr(user, 'last_login') and user.last_login else None,
+        'status': getattr(user, 'status', 'active'),
+        'role': 'admin' if user.is_admin else 'user',
+        'prediction_count': Prediction.query.filter_by(user_id=user.id).count()
+    }
+    
+    return jsonify({'success': True, 'user': user_data})
+
+@app.route('/admin/users/<int:user_id>', methods=['PUT'])
+def admin_update_user(user_id):
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+    
+    if 'status' in data:
+        user.status = data['status']
+    
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'User updated successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/users/<int:user_id>', methods=['DELETE'])
+def admin_delete_user(user_id):
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        # Delete user's predictions first
+        Prediction.query.filter_by(user_id=user_id).delete()
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'User deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+ # ===============================
+# ADMIN STATISTICS ROUTE
+# ===============================
+@app.route('/admin/statistics')
+def admin_statistics():
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        # Get real counts from database
+        total_users = User.query.count()
+        total_predictions = Prediction.query.count()
+        
+        # Count predictions by health status
+        healthy_plants = Prediction.query.filter_by(health="Healthy").count()
+        diseased_plants = Prediction.query.filter_by(health="Unhealthy").count()
+        dry_plants = Prediction.query.filter_by(health="Dry").count()
+        
+        statistics = {
+            'total_users': total_users,
+            'total_predictions': total_predictions,
+            'healthy_plants': healthy_plants,
+            'diseased_plants': diseased_plants,
+            'dry_plants': dry_plants
+        }
+        
+        return jsonify({'success': True, 'statistics': statistics})
+        
+    except Exception as e:
+        logging.error("Statistics error", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500   
+# ===============================
+# ADMIN ANALYTICS ROUTES
+# ===============================
+@app.route('/admin/analytics/health-distribution')
+def admin_health_distribution():
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        total_predictions = Prediction.query.count()
+        
+        if total_predictions == 0:
+            return jsonify({
+                'success': True, 
+                'distribution': {'healthy': 0, 'diseased': 0, 'dry': 0},
+                'percentages': {'healthy': 0, 'diseased': 0, 'dry': 0}
+            })
+        
+        healthy_count = Prediction.query.filter_by(health="Healthy").count()
+        diseased_count = Prediction.query.filter_by(health="Unhealthy").count()
+        dry_count = Prediction.query.filter_by(health="Dry").count()
+        
+        healthy_percent = round((healthy_count / total_predictions) * 100)
+        diseased_percent = round((diseased_count / total_predictions) * 100)
+        dry_percent = round((dry_count / total_predictions) * 100)
+        
+        return jsonify({
+            'success': True,
+            'distribution': {
+                'healthy': healthy_count,
+                'diseased': diseased_count,
+                'dry': dry_count
+            },
+            'percentages': {
+                'healthy': healthy_percent,
+                'diseased': diseased_percent,
+                'dry': dry_percent
+            }
+        })
+        
+    except Exception as e:
+        logging.error("Health distribution error", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/analytics/user-stats')
+def admin_user_stats():
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        users = User.query.all()
+        user_stats = []
+        
+        for user in users:
+            predictions = Prediction.query.filter_by(user_id=user.id).all()
+            total_predictions = len(predictions)
+            
+            healthy_count = sum(1 for p in predictions if p.health == "Healthy")
+            diseased_count = sum(1 for p in predictions if p.health == "Unhealthy")
+            dry_count = sum(1 for p in predictions if p.health == "Dry")
+            
+            user_stats.append({
+                'email': user.email,
+                'total_predictions': total_predictions,
+                'healthy': healthy_count,
+                'diseased': diseased_count,
+                'dry': dry_count
+            })
+        
+        # Sort by total predictions (descending)
+        user_stats.sort(key=lambda x: x['total_predictions'], reverse=True)
+        
+        return jsonify({'success': True, 'user_stats': user_stats})
+        
+    except Exception as e:
+        logging.error("User stats error", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/analytics/top-diseases')
+def admin_top_diseases():
+    if "user_id" not in session or not session.get("is_admin"):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        # Get all predictions with diseases
+        predictions_with_disease = Prediction.query.filter(
+            Prediction.disease != '', 
+            Prediction.disease.isnot(None)
+        ).all()
+        
+        total_disease_predictions = len(predictions_with_disease)
+        
+        if total_disease_predictions == 0:
+            return jsonify({'success': True, 'top_diseases': []})
+        
+        # Count diseases
+        disease_counts = {}
+        for prediction in predictions_with_disease:
+            disease = prediction.disease
+            if disease:
+                disease_counts[disease] = disease_counts.get(disease, 0) + 1
+        
+        # Convert to list and calculate percentages
+        top_diseases = []
+        for disease, count in disease_counts.items():
+            percentage = round((count / total_disease_predictions) * 100)
+            top_diseases.append({
+                'disease': disease,
+                'count': count,
+                'percentage': percentage
+            })
+        
+        # Sort by count (descending) and take top 10
+        top_diseases.sort(key=lambda x: x['count'], reverse=True)
+        top_diseases = top_diseases[:10]
+        
+        return jsonify({'success': True, 'top_diseases': top_diseases})
+        
+    except Exception as e:
+        logging.error("Top diseases error", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ===============================
+# USER STATISTICS ROUTE
+# ===============================
+@app.route('/user/statistics')
+def user_statistics():
+    if "user_id" not in session:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    
+    try:
+        user_id = session["user_id"]
+        
+        # Get counts for the current user only
+        total_predictions = Prediction.query.filter_by(user_id=user_id).count()
+        healthy_plants = Prediction.query.filter_by(user_id=user_id, health="Healthy").count()
+        diseased_plants = Prediction.query.filter_by(user_id=user_id, health="Unhealthy").count()
+        dry_plants = Prediction.query.filter_by(user_id=user_id, health="Dry").count()
+        
+        statistics = {
+            'total_predictions': total_predictions,
+            'healthy_plants': healthy_plants,
+            'diseased_plants': diseased_plants,
+            'dry_plants': dry_plants
+        }
+        
+        return jsonify({'success': True, 'statistics': statistics})
+        
+    except Exception as e:
+        logging.error("User statistics error", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500   
+    
+# ===============================
 # ADMIN CREATION
 # ===============================
 def create_admins():

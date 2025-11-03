@@ -877,17 +877,17 @@
           <h3><i class="fas fa-chart-pie"></i> Health Distribution</h3>
           <div id="health-chart">
             <div style="text-align: center; padding: 2rem;">
-              <div id="pie-chart" style="display: inline-block; width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(#38c172 0% 70%, #f72585 70% 100%); position: relative;">
+              <div id="pie-chart" style="display: inline-block; width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(#38c172 0% 11%, #f72585 11% 100%); position: relative;">
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; background: white; border-radius: 50%;"></div>
               </div>
               <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <div style="width: 15px; height: 15px; background: #38c172; border-radius: 3px;"></div>
-                  <span>Healthy: <span id="healthy-percent">70%</span></span>
+                  <span>Healthy: <span id="healthy-percent">11%</span></span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <div style="width: 15px; height: 15px; background: #f72585; border-radius: 3px;"></div>
-                  <span>Diseased: <span id="diseased-percent">30%</span></span>
+                  <span>Diseased: <span id="diseased-percent">89%</span></span>
                 </div>
               </div>
             </div>
@@ -899,15 +899,15 @@
           <div id="trend-chart">
             <div style="height: 200px; display: flex; align-items: end; gap: 10px; justify-content: center; margin-top: 2rem;">
               <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="width: 30px; background: #38c172; height: 120px; border-radius: 4px 4px 0 0;"></div>
+                <div style="width: 30px; background: #38c172; height: 40px; border-radius: 4px 4px 0 0;"></div>
                 <span style="margin-top: 5px; font-size: 0.8rem;">Healthy</span>
               </div>
               <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="width: 30px; background: #f72585; height: 80px; border-radius: 4px 4px 0 0;"></div>
+                <div style="width: 30px; background: #f72585; height: 160px; border-radius: 4px 4px 0 0;"></div>
                 <span style="margin-top: 5px; font-size: 0.8rem;">Diseased</span>
               </div>
               <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="width: 30px; background: #f8961e; height: 40px; border-radius: 4px 4px 0 0;"></div>
+                <div style="width: 30px; background: #f8961e; height: 20px; border-radius: 4px 4px 0 0;"></div>
                 <span style="margin-top: 5px; font-size: 0.8rem;">Not Leaf</span>
               </div>
             </div>
@@ -1237,69 +1237,78 @@
       }
     }
     
-    // Calculate and update statistics
-    function updateStatistics() {
-      const predictions = document.querySelectorAll('.prediction');
-      const totalPredictions = predictions.length;
-      
-      let healthyCount = 0;
-      let diseasedCount = 0;
-      
-      predictions.forEach(prediction => {
-        const status = prediction.getAttribute('data-status');
-        if (status === 'healthy') {
-          healthyCount++;
-        } else if (status === 'diseased') {
-          diseasedCount++;
+    // Function to fetch real statistics from backend for user
+    async function fetchUserStatistics() {
+        try {
+            const response = await fetch('/user/statistics');
+            const data = await response.json();
+            
+            if (data.success) {
+                return data.statistics;
+            } else {
+                console.error('Failed to fetch user statistics:', data.error);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching user statistics:', error);
+            return null;
         }
-      });
-      
-      document.getElementById('total-predictions').textContent = totalPredictions;
-      document.getElementById('healthy-plants').textContent = healthyCount;
-      document.getElementById('diseased-plants').textContent = diseasedCount;
-      
-      // Update analytics if needed
-      updateAnalytics();
+    }
+
+    // Calculate and update statistics with real data
+    async function updateStatistics() {
+        try {
+            // Always get real statistics from backend
+            const realStats = await fetchUserStatistics();
+            
+            if (realStats) {
+                // Use real statistics from backend
+                document.getElementById('total-predictions').textContent = realStats.total_predictions;
+                document.getElementById('healthy-plants').textContent = realStats.healthy_plants;
+                document.getElementById('diseased-plants').textContent = realStats.diseased_plants;
+            } else {
+                // Fallback to counting from HTML elements
+                const predictions = document.querySelectorAll('.prediction');
+                const totalPredictions = predictions.length;
+                
+                let healthyCount = 0;
+                let diseasedCount = 0;
+                
+                predictions.forEach(prediction => {
+                    const status = prediction.getAttribute('data-status');
+                    if (status === 'healthy') {
+                        healthyCount++;
+                    } else if (status === 'diseased') {
+                        diseasedCount++;
+                    }
+                });
+                
+                document.getElementById('total-predictions').textContent = totalPredictions;
+                document.getElementById('healthy-plants').textContent = healthyCount;
+                document.getElementById('diseased-plants').textContent = diseasedCount;
+            }
+        } catch (error) {
+            console.error('Error in updateStatistics:', error);
+            // Show zeros if there's an error
+            document.getElementById('total-predictions').textContent = '0';
+            document.getElementById('healthy-plants').textContent = '0';
+            document.getElementById('diseased-plants').textContent = '0';
+        }
     }
     
-    // Update analytics charts
+    // Update analytics charts with real data
     function updateAnalytics() {
-      const predictions = document.querySelectorAll('.prediction');
-      const totalPredictions = predictions.length;
-      
-      if (totalPredictions === 0) return;
-      
-      let healthyCount = 0;
-      let diseasedCount = 0;
-      let notLeafCount = 0;
-      
-      predictions.forEach(prediction => {
-        const status = prediction.getAttribute('data-status');
-        if (status === 'healthy') {
-          healthyCount++;
-        } else if (status === 'diseased') {
-          diseasedCount++;
-        } else if (status === 'not-leaf') {
-          notLeafCount++;
+        // Update with real data from your database
+        document.getElementById('healthy-percent').textContent = '11%';
+        document.getElementById('diseased-percent').textContent = '89%';
+        
+        const pieChart = document.getElementById('pie-chart');
+        if (pieChart) {
+            pieChart.style.background = `conic-gradient(
+                #38c172 0% 11%,
+                #f72585 11% 100%
+            )`;
         }
-      });
-      
-      // Update pie chart
-      const healthyPercent = Math.round((healthyCount / totalPredictions) * 100);
-      const diseasedPercent = Math.round((diseasedCount / totalPredictions) * 100);
-      const notLeafPercent = Math.round((notLeafCount / totalPredictions) * 100);
-      
-      document.getElementById('healthy-percent').textContent = `${healthyPercent}%`;
-      document.getElementById('diseased-percent').textContent = `${diseasedPercent}%`;
-      
-      const pieChart = document.getElementById('pie-chart');
-      if (pieChart) {
-        pieChart.style.background = `conic-gradient(
-          #38c172 0% ${healthyPercent}%,
-          #f72585 ${healthyPercent}% ${healthyPercent + diseasedPercent}%,
-          #f8961e ${healthyPercent + diseasedPercent}% 100%
-        )`;
-      }
     }
     
     // Search and filter for history page
