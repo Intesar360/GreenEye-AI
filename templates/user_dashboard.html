@@ -1088,35 +1088,35 @@
       }
     });
     
-    // Prediction functionality
-    predictBtn.addEventListener('click', async () => {
-      if (!fileInput.files.length) return alert("Please select an image first");
-      
-      const formData = new FormData();
-      formData.append("image", fileInput.files[0]);
-      
-      resultsDiv.innerHTML = `
-        <div class="processing">
-          <div class="spinner"></div>
-          <h3>Analyzing Image...</h3>
-          <p>This may take a few moments</p>
-        </div>
-      `;
-      
-      predictBtn.disabled = true;
-      predictBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-      
-      try {
-        const response = await fetch("/predict", { method: "POST", body: formData });
-        const data = await response.json();
-        
-        if (data.error) {
-          resultsDiv.innerHTML = `<div class="result-card" style="border-left-color: var(--danger);">
-            <h3 style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Error</h3>
-            <p>${data.error}</p>
-          </div>`;
-          return;
-        }
+  // Prediction functionality
+predictBtn.addEventListener('click', async () => {
+  if (!fileInput.files.length) return alert("Please select an image first");
+  
+  const formData = new FormData();
+  formData.append("image", fileInput.files[0]);
+  
+  resultsDiv.innerHTML = `
+    <div class="processing">
+      <div class="spinner"></div>
+      <h3>Analyzing Image...</h3>
+      <p>This may take a few moments</p>
+    </div>
+  `;
+  
+  predictBtn.disabled = true;
+  predictBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  
+  try {
+    const response = await fetch("/predict", { method: "POST", body: formData });
+    const data = await response.json();
+    
+    if (data.error) {
+      resultsDiv.innerHTML = `<div class="result-card" style="border-left-color: var(--danger);">
+        <h3 style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Error</h3>
+        <p>${data.error}</p>
+      </div>`;
+      return;
+    }
         
         // Show results
         let statusClass = 'healthy';
@@ -1125,56 +1125,75 @@
         if (data.leaf === 'Not Leaf') {
           statusClass = 'not-leaf';
           statusText = 'Not a Leaf';
-        } else if (data.health === 'Unhealthy') {
-          statusClass = 'diseased';
-          statusText = 'Diseased';
-        }
+        } else if (data.health === 'Unhealthy' || data.health === 'Dry') {
+      statusClass = 'diseased';
+      statusText = 'Diseased';
+      // Special handling for dry leaves
+      if (data.health === 'Dry') {
+        statusText = 'Dry Leaf';
+      }
+    }
         
         resultsDiv.innerHTML = `
-          <div class="result-card" style="border-left-color: ${statusClass === 'healthy' ? '#38c172' : statusClass === 'diseased' ? 'var(--danger)' : 'var(--warning)'};">
-            <h3><i class="fas fa-check-circle" style="color: ${statusClass === 'healthy' ? '#38c172' : statusClass === 'diseased' ? 'var(--danger)' : 'var(--warning)'};"></i> Analysis Complete</h3>
-            <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
-              <img src="${data.image_url}" alt="Analyzed Image" style="width: 100px; height: 100px; border-radius: 8px; object-fit: cover;">
-              <div>
-                <p><strong>Result:</strong> <span class="health-badge ${statusClass}">${statusText}</span></p>
-                ${data.disease ? `<p><strong>Disease:</strong> ${data.disease}</p>` : ''}
-                <p><strong>Confidence:</strong> ${data.confidence}%</p>
-              </div>
-            </div>
+      <div class="result-card" style="border-left-color: ${statusClass === 'healthy' ? '#38c172' : statusClass === 'diseased' ? 'var(--danger)' : 'var(--warning)'};">
+        <h3><i class="fas fa-check-circle" style="color: ${statusClass === 'healthy' ? '#38c172' : statusClass === 'diseased' ? 'var(--danger)' : 'var(--warning)'};"></i> Analysis Complete</h3>
+        <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
+          <img src="${data.image_url}" alt="Analyzed Image" style="width: 100px; height: 100px; border-radius: 8px; object-fit: cover;">
+          <div>
+            <p><strong>Result:</strong> <span class="health-badge ${statusClass}">${statusText}</span></p>
+            ${data.disease ? `<p><strong>Disease:</strong> ${data.disease}</p>` : ''}
+            <p><strong>Confidence:</strong> ${data.confidence}%</p>
+            ${data.health === 'Dry' ? `<p><strong>Note:</strong> This leaf appears to be dry. Consider watering or environmental factors.</p>` : ''}
           </div>
-        `;
-        
-        // Add new prediction to history
-        addNewPrediction(data, statusClass);
-        
-        // Update statistics
-        updateStatistics();
-        
-      } catch (err) {
-        console.error(err);
-        resultsDiv.innerHTML = `<div class="result-card" style="border-left-color: var(--danger);">
-          <h3 style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Server Error</h3>
-          <p>Please try again later</p>
-        </div>`;
-      } finally {
-        predictBtn.disabled = false;
-        predictBtn.innerHTML = '<i class="fas fa-search"></i> Analyze Image';
-        predictBtn.style.display = 'none';
-        
-        // Reset upload section
-        uploadSection.innerHTML = `
-          <div class="upload-icon">
-            <i class="fas fa-cloud-upload-alt"></i>
-          </div>
-          <h3>Drag & Drop or Click to Upload</h3>
-          <p>Supported formats: JPG, PNG, JPEG</p>
-          <label for="fileInput" class="upload-btn">
-            <i class="fas fa-upload"></i> Choose Image
-          </label>
-        `;
-        fileInput.value = '';
-      }
-    });
+        </div>
+      </div>
+    `;
+    
+    // Add new prediction to history
+    addNewPrediction(data, statusClass);
+    
+    // Update statistics
+    updateStatistics();
+    
+  } catch (err) {
+    console.error(err);
+    resultsDiv.innerHTML = `<div class="result-card" style="border-left-color: var(--danger);">
+      <h3 style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Server Error</h3>
+      <p>Please try again later</p>
+    </div>`;
+  } finally {
+    predictBtn.disabled = false;
+    predictBtn.innerHTML = '<i class="fas fa-search"></i> Analyze Image';
+    predictBtn.style.display = 'none';
+    
+    // Reset upload section
+    uploadSection.innerHTML = `
+      <div class="upload-icon">
+        <i class="fas fa-cloud-upload-alt"></i>
+      </div>
+      <h3>Drag & Drop or Click to Upload</h3>
+      <p>Supported formats: JPG, PNG, JPEG</p>
+      <label for="fileInput" class="upload-btn">
+        <i class="fas fa-upload"></i> Choose Image
+      </label>
+    `;
+    fileInput.value = '';
+    fileInput.onchange = function() {
+       if (this.files && this.files[0]) {
+            const fileName = this.files[0].name;
+            uploadSection.innerHTML = `
+                <div class="upload-icon">
+                <i class="fas fa-file-image"></i>
+                </div>
+                <h3>${fileName}</h3>
+                <p>Ready for analysis</p>
+                  `;
+             predictBtn.style.display = 'block';
+              }
+            }
+  }     
+  
+});
     
     // Add new prediction to both recent and all predictions
     function addNewPrediction(data, statusClass) {
