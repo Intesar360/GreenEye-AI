@@ -176,15 +176,22 @@ def logout():
 def user_dashboard():
     if "user_id" not in session or session.get("is_admin"):
         return redirect(url_for("login"))
+    
     user = User.query.get(session["user_id"])
-    predictions = Prediction.query.filter_by(user_id=user.id).all()
+    
+    # CHANGE IS HERE: Added .order_by(Prediction.timestamp.desc())
+    predictions = Prediction.query.filter_by(user_id=user.id).order_by(Prediction.timestamp.desc()).all()
+    
     return render_template("user_dashboard.html", user=user, predictions=predictions)
 
 @app.route("/admin_dashboard")
 def admin_dashboard():
     if "user_id" not in session or not session.get("is_admin"):
         return redirect(url_for("login"))
-    all_preds = Prediction.query.all()
+    
+    # CHANGE IS HERE: Added .order_by(Prediction.timestamp.desc())
+    all_preds = Prediction.query.order_by(Prediction.timestamp.desc()).all()
+    
     admin_user = User.query.get(session["user_id"])
     return render_template("admin_dashboard.html", predictions=all_preds, user=admin_user)
 
@@ -585,7 +592,93 @@ def create_admins():
             if not User.query.filter_by(email=email).first():
                 db.session.add(User(email=email, password=generate_password_hash("111111"), is_admin=True))
         db.session.commit()
+# =====================================================
+# NEW: IOT AUTOMATION ROUTE 
+# =====================================================
+@app.route("/api/iot/upload", methods=["POST"])
+def iot_upload():
+    API_KEY = "greeneye_secret_pass_123"
+    if request.headers.get("X-API-KEY") != API_KEY:
+        return jsonify({"error": "Invalid API Key"}), 401
 
+    try:
+        # --- FIX: GET EMAIL FROM SCRIPT ---
+        target_email = request.form.get("email")
+        
+        # Fallback if script didn't send email (prevents crash)
+        if not target_email: 
+             return jsonify({"error": "Email missing"}), 400
+
+        user = User.query.filter_by(email=target_email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        # ----------------------------------
+
+        if "image" not in request.files:
+            return jsonify({"error": "No image part"}), 400
+        
+        file = request.files["image"]
+        filename = "iot_" + str(uuid.uuid4()) + ".jpg"
+        save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        file.save(save_path)
+        image_path = "uploads/" + filename
+
+        img = Image.open(save_path).convert("RGB")
+        img_tensor = transform(img).unsqueeze(0)
+
+        # Leaf Model
+        leaf_model = get_leaf_model()
+        with torch.no_grad():
+            out_leaf = leaf_model(img_tensor)
+            probs = F.softmax(out_leaf, dim=1)[0]
+            max_prob, pred_idx = torch.max(probs, 0)
+        leaf_pred = LEAF_CLASS_NAMES[pred_idx.item()]
+
+        # Not Leaf Handling
+        if leaf_pred == "Not Leaf" and max_prob.item() > THRESHOLD_LEAF:
+            pred = Prediction(
+                image_path=image_path, leaf="Not Leaf", health="", disease="",
+                confidence=max_prob.item(), user_id=user.id
+            )
+            db.session.add(pred)
+            db.session.commit()
+            # Return 'user' so script doesn't say 'None'
+            return jsonify({"status": "success", "result": "Not Leaf", "user": user.email})
+
+        # Disease Models
+        disease_model = get_disease_model()
+        with torch.no_grad():
+            out_health = disease_model(img_tensor)
+            probs2 = F.softmax(out_health, dim=1)[0]
+            max_prob2, pred_idx2 = torch.max(probs2, 0)
+        health_pred = DISEASE_CLASS_NAMES[pred_idx2.item()]
+
+        specific = ""
+        if health_pred == "Unhealthy" and max_prob2.item() > THRESHOLD_UNHEALTHY:
+            specific_disease_model = get_specific_disease_model()
+            with torch.no_grad():
+                out_spec = specific_disease_model(img_tensor)
+                probs3 = F.softmax(out_spec, dim=1)[0]
+                top_prob, top_idx = torch.max(probs3, 0)
+                specific = SPECIFIC_DISEASE_CLASSES[top_idx.item()]
+
+        # Save to DB
+        pred = Prediction(
+            image_path=image_path, leaf="Leaf", health=health_pred,
+            disease=specific, confidence=max_prob2.item(), user_id=user.id
+        )
+        db.session.add(pred)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success", "health": health_pred, 
+            "disease": specific, "user": user.email
+        })
+
+    except Exception as e:
+        logging.error("IoT Upload Error", exc_info=True)
+        return jsonify({"error": str(e)}), 500
 # ===============================
 # RUN APP
 # ===============================

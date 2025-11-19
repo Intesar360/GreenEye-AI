@@ -13,3 +13,17 @@ Data_Split_Stage2.zip
 notebook/checkpoint.pth
 notebook/class_names.txt
 notebook/stage2_checkpoint.pth
+
+models/
+notebook/
+
+# --- Database & User Uploads
+instance/
+static/uploads/
+*.db
+*.sqlite3
+
+# --- Python System Files (Junk) ---
+__pycache__/
+*.pyc
+.DS_Store
