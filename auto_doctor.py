@@ -5,80 +5,95 @@ import os
 # ==========================================
 # CONFIGURATION
 # ==========================================
-ESP32_CAM_URL = "http://192.168.0.120/capture"
+ESP32_IP = "http://192.168.0.116"
+ESP32_CAPTURE_URL = f"{ESP32_IP}/capture"
+ESP32_CONTROL_URL = f"{ESP32_IP}/control"
+
 SERVER_API_URL = "http://127.0.0.1:5000/api/iot/upload"
 API_KEY = "greeneye_secret_pass_123"
+
 BACKUP_FOLDER = r"E:\IOT\leaf_backups"
 os.makedirs(BACKUP_FOLDER, exist_ok=True)
 
 # ==========================================
-# USER LOGIN (SIMULATED)
+# SETUP
 # ==========================================
-print("--- IoT Automation Started ---")
+print("--- IoT Plant Doctor: Batch Mode ---")
+
+# 1. Arm the Flash
+try:
+    print("Configuring Flash to MAX...")
+    requests.get(f"{ESP32_CONTROL_URL}?var=led_intensity&val=255", timeout=5)
+    print("✅ Flash Ready.")
+except:
+    print("⚠️ Warning: Could not configure flash (ESP32 might be offline).")
+
+# 2. Set User
 print("Who should receive these images?")
 target_email = input("Enter your registered Email Address: ").strip()
-
 if not target_email:
-    print("Error: Email is required to start.")
+    print("Error: Email is required.")
     exit()
 
-print(f"✅ OK! Sending images to: {target_email}")
-print("Starting capture loop...")
-time.sleep(2)
+print(f"✅ Target Locked: {target_email}")
+time.sleep(1)
 
 # ==========================================
-# AUTOMATION LOOP
+# MAIN BATCH LOOP
 # ==========================================
 while True:
-    try:
-        print(f"\n[1] Requesting image for {target_email}...")
-        
+    print("\n" + "="*40)
+    print("   READY TO CAPTURE")
+    print("="*40)
+    user_input = input("👉 Press [ENTER] to take 5 photos (or type 'q' to quit): ")
+
+    if user_input.lower() == 'q':
+        print("Exiting...")
+        break
+
+    print("\n🚀 Starting Batch of 5 Photos...")
+
+    # --- THE 5-PHOTO LOOP ---
+    for i in range(1, 6):
+        print(f"\n📸 [Photo {i}/5] Capturing...")
+
         try:
-            esp_response = requests.get(ESP32_CAM_URL, timeout=5)
-        except:
-            print("    Connection Error: Cannot reach ESP32.")
-            time.sleep(5)
-            continue
-
-        if esp_response.status_code == 200:
-            # Save locally
-            timestamp = int(time.time())
-            filename = f"leaf_{timestamp}.jpg"
-            filepath = os.path.join(BACKUP_FOLDER, filename)
-
-            with open(filepath, "wb") as f:
-                f.write(esp_response.content)
-
-            # Upload to Flask Server
-            print("    [2] Uploading to Dashboard...")
+            # 1. Capture
+            esp_response = requests.get(ESP32_CAPTURE_URL, timeout=10)
             
-            with open(filepath, "rb") as img_file:
-                files = {'image': img_file}
-                # HERE IS THE CHANGE: We send the email along with the image
-                data = {'email': target_email} 
-                headers = {'X-API-KEY': API_KEY}
-                
-                try:
-                    api_response = requests.post(SERVER_API_URL, files=files, data=data, headers=headers)
+            if esp_response.status_code == 200:
+                # 2. Save
+                timestamp = int(time.time())
+                filename = f"leaf_batch_{timestamp}_{i}.jpg"
+                filepath = os.path.join(BACKUP_FOLDER, filename)
+
+                with open(filepath, "wb") as f:
+                    f.write(esp_response.content)
+
+                # 3. Upload
+                print(f"    Uploading to Dashboard...")
+                with open(filepath, "rb") as img_file:
+                    files = {'image': img_file}
+                    data = {'email': target_email} 
+                    headers = {'X-API-KEY': API_KEY}
                     
-                    if api_response.status_code == 200:
-                        res = api_response.json()
-                        print(f"    SUCCESS! Uploaded to {res.get('user')}")
-                        print(f"    Diagnosis: {res.get('health')} - {res.get('disease')}")
-                    elif api_response.status_code == 404:
-                        print("    ERROR: That email does not exist in the database!")
-                        print("    Please stop (Ctrl+C) and restart with a valid email.")
-                    else:
-                        print(f"    Server Error: {api_response.text}")
-                        
-                except Exception as e:
-                    print(f"    Upload Failed: {e}")
+                    try:
+                        api_response = requests.post(SERVER_API_URL, files=files, data=data, headers=headers)
+                        if api_response.status_code == 200:
+                            res = api_response.json()
+                            print(f"    ✅ SUCCESS! Diagnosis: {res.get('health')} - {res.get('disease')}")
+                        else:
+                            print(f"    ❌ Server Error: {api_response.text}")
+                    except Exception as e:
+                        print(f"    ❌ Upload Failed: {e}")
+            else:
+                print(f"    ❌ ESP32 Error: {esp_response.status_code}")
 
-        else:
-            print(f"    ESP32 returned error: {esp_response.status_code}")
+        except Exception as e:
+            print(f"    ❌ Connection Error: {e}")
 
-    except Exception as e:
-        print(f"    Critical Error: {e}")
+        # Wait 5 seconds between shots to let flash recharge
+        if i < 5: 
+            time.sleep(5)
 
-    print("    Waiting 10 seconds...")
-    time.sleep(10)
+    print("\n✅ Batch Complete!")
